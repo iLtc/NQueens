@@ -8,6 +8,8 @@
 <div>
     <input id="board-size" type="number" placeholder="Size">
     <button id="start">Start</button>
+    <input type="checkbox" id="help-mode" name="help-mode" value="help-mode">
+    <label for="help-mode"> Help Mode</label>
 </div>
 
 <hr>
@@ -31,6 +33,8 @@
     const chessBoardDiv = d3.select("#chess-board")
 
     let a
+    let isHelpMode = false
+    let isGameOver = false
 
     let chessBoardSvg
     let cells
@@ -51,7 +55,8 @@
                     x: row,
                     y: col,
                     fill: ((row % 2 === 0 && col % 2 === 0) || (row % 2 === 1 && col % 2 === 1)) ? "#F5F5DC" : "#D2B48C",
-                    status: cellStatus.EMPTY
+                    status: cellStatus.EMPTY,
+                    disabled: false
                 }
                 cells.push(cell)
                 locToCell[row][col] = cell
@@ -80,29 +85,56 @@
             .attr("fill", (d) => d.fill)
             .style("cursor", "pointer")
             .on("mouseover", function (event, d) {
-                if (d.status !== cellStatus.QUEEN && d.status !== cellStatus.BLOCKED) {
-                    locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+                if (isGameOver || d.status === cellStatus.QUEEN)
+                    return
 
-                    bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
+                if (isHelpMode) {
+                    if (d.status !== cellStatus.BLOCKED) {
+                        locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+
+                        bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
+
+                        updateBoard()
+                    }
+                } else {
+                    locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
 
                     updateBoard()
                 }
             }).on("mouseout", function (event, d) {
-                if (d.status === cellStatus.QUEEN_HOVER) {
+                if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+                    return
+
+                if (d.disabled) {
+                    locToCell[d.x][d.y].status = cellStatus.BLOCKED
+                } else {
                     locToCell[d.x][d.y].status = cellStatus.EMPTY
+                }
 
+                if (isHelpMode) {
                     bulkChangeStatus(d.x, d.y, cellStatus.EMPTY)
-
-                    updateBoard()
                 }
+
+                updateBoard()
             }).on("click", function (event, d) {
-                if (d.status === cellStatus.QUEEN_HOVER) {
-                    locToCell[d.x][d.y].status = cellStatus.QUEEN
+                if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+                    return
 
-                    bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
+                if (d.disabled) {
+                    isGameOver = true
 
+                    locToCell[d.x][d.y].status = cellStatus.BLOCKED
                     updateBoard()
+
+                    alert("You lost the game!")
+                    return
                 }
+
+                locToCell[d.x][d.y].status = cellStatus.QUEEN
+
+                bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
+
+                updateBoard()
             })
 
         chessBoardCells.append("text")
@@ -145,6 +177,8 @@
             .style("text-anchor", "middle")
             .style("opacity", 0.75)
             .attr("transform", `translate(-15, ${cellSize / 1.5})`)
+
+        isGameOver = false
     }
 
     function bulkChangeStatus(x, y, status) {
@@ -152,44 +186,85 @@
         for (let row = 0; row < a; row ++) {
             if (row !== x
                 && locToCell[row][y].status !== cellStatus.QUEEN
-                && locToCell[row][y].status !== cellStatus.BLOCKED)
+                && locToCell[row][y].status !== cellStatus.BLOCKED
+                && !locToCell[row][y].disabled) {
                 locToCell[row][y].status = status
-        }
 
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[row][y].disabled = true
+                }
+            }
+        }
 
         // same col
         for (let col = 0; col < a; col ++) {
             if (col !== y
                 && locToCell[x][col].status !== cellStatus.QUEEN
-                && locToCell[x][col].status !== cellStatus.BLOCKED)
+                && locToCell[x][col].status !== cellStatus.BLOCKED
+                && !locToCell[x][col].disabled) {
                 locToCell[x][col].status = status
-        }
 
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[x][col].disabled = true
+                }
+            }
+        }
 
         // same diagonal
         for (let row = x - 1, col = y - 1; row >= 0 && col >= 0; row --, col --) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+            if (locToCell[row][col].status !== cellStatus.QUEEN
+                && locToCell[row][col].status !== cellStatus.BLOCKED
+                && !locToCell[row][col].disabled) {
                 locToCell[row][col].status = status
-        }
 
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[row][col].disabled = true
+                }
+            }
+        }
 
         for (let row = x + 1, col = y + 1; row < a && col < a; row ++, col ++) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+            if (locToCell[row][col].status !== cellStatus.QUEEN
+                && locToCell[row][col].status !== cellStatus.BLOCKED
+                && !locToCell[row][col].disabled) {
                 locToCell[row][col].status = status
+
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[row][col].disabled = true
+                }
+            }
         }
         for (let row = x + 1, col = y - 1; row < a && col >= 0; row ++, col --) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+            if (locToCell[row][col].status !== cellStatus.QUEEN
+                && locToCell[row][col].status !== cellStatus.BLOCKED
+                && !locToCell[row][col].disabled) {
                 locToCell[row][col].status = status
+
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[row][col].disabled = true
+                }
+            }
         }
         for (let row = x - 1, col = y + 1; row >= 0 && col < a; row --, col ++) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+            if (locToCell[row][col].status !== cellStatus.QUEEN
+                && locToCell[row][col].status !== cellStatus.BLOCKED
+                && !locToCell[row][col].disabled) {
                 locToCell[row][col].status = status
+
+                if (status === cellStatus.BLOCKED) {
+                    locToCell[row][col].disabled = true
+                }
+            }
         }
     }
 
     function updateBoard() {
         d3.selectAll(".cell-rect")
             .attr("fill", (d) => {
+                if (!isHelpMode) {
+                    return d.fill
+                }
+
                 switch (d.status) {
                     case cellStatus.BLOCKED_HOVER:
                         return d.fill === "#F5F5DC" ? "#AAAA98" : "#917C61"
@@ -201,6 +276,7 @@
                         return d.fill
                 }
             })
+
         d3.selectAll(".cell-text")
             .text((d) => {
                 switch (d.status) {
@@ -240,6 +316,11 @@
             a = size
             initBoard()
         }
+    })
+
+    $("#help-mode").click(function () {
+        isHelpMode = $(this).is(':checked')
+        updateBoard()
     })
 </script>
 </body>
