@@ -22,11 +22,13 @@
 
     const chessBoardDiv = d3.select("#chess-board")
 
+    let a
+
     let chessBoardSvg
     let cells
     let locToCell
 
-    function initBoard(a) {
+    function initBoard() {
 
         const boardSize = a * cellSize
 
@@ -73,71 +75,27 @@
                 if (d.status !== cellStatus.QUEEN && d.status !== cellStatus.BLOCKED) {
                     locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
 
-                    // same row
-                    for (let row = 0; row < a; row ++) {
-                        if (row !== d.x) {
-                            locToCell[row][d.y].status = cellStatus.BLOCKED_HOVER
-                        }
-                    }
-
-                    // same col
-                    for (let col = 0; col < a; col ++) {
-                        if (col !== d.y) {
-                            locToCell[d.x][col].status = cellStatus.BLOCKED_HOVER
-                        }
-                    }
-
-                    // same diagonal
-                    for (let row = d.x - 1, col = d.y - 1; row >= 0 && col >= 0; row --, col --) {
-                        locToCell[row][col].status = cellStatus.BLOCKED_HOVER
-                    }
-                    for (let row = d.x + 1, col = d.y + 1; row < a && col < a; row ++, col ++) {
-                        locToCell[row][col].status = cellStatus.BLOCKED_HOVER
-                    }
-                    for (let row = d.x + 1, col = d.y - 1; row < a && col >= 0; row ++, col --) {
-                        locToCell[row][col].status = cellStatus.BLOCKED_HOVER
-                    }
-                    for (let row = d.x - 1, col = d.y + 1; row >= 0 && col < a; row --, col ++) {
-                        locToCell[row][col].status = cellStatus.BLOCKED_HOVER
-                    }
+                    bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
 
                     updateBoard()
                 }
             }).on("mouseout", function (event, d) {
-            if (d.status === cellStatus.QUEEN_HOVER) {
-                locToCell[d.x][d.y].status = cellStatus.EMPTY
+                if (d.status === cellStatus.QUEEN_HOVER) {
+                    locToCell[d.x][d.y].status = cellStatus.EMPTY
 
-                // same row
-                for (let row = 0; row < a; row ++) {
-                    if (row !== d.x) {
-                        locToCell[row][d.y].status = cellStatus.EMPTY
-                    }
-                }
+                    bulkChangeStatus(d.x, d.y, cellStatus.EMPTY)
 
-                // same col
-                for (let col = 0; col < a; col ++) {
-                    if (col !== d.y) {
-                        locToCell[d.x][col].status = cellStatus.EMPTY
-                    }
+                    updateBoard()
                 }
+            }).on("click", function (event, d) {
+                if (d.status === cellStatus.QUEEN_HOVER) {
+                    locToCell[d.x][d.y].status = cellStatus.QUEEN
 
-                // same diagonal
-                for (let row = d.x - 1, col = d.y - 1; row >= 0 && col >= 0; row --, col --) {
-                    locToCell[row][col].status = cellStatus.EMPTY
-                }
-                for (let row = d.x + 1, col = d.y + 1; row < a && col < a; row ++, col ++) {
-                    locToCell[row][col].status = cellStatus.EMPTY
-                }
-                for (let row = d.x + 1, col = d.y - 1; row < a && col >= 0; row ++, col --) {
-                    locToCell[row][col].status = cellStatus.EMPTY
-                }
-                for (let row = d.x - 1, col = d.y + 1; row >= 0 && col < a; row --, col ++) {
-                    locToCell[row][col].status = cellStatus.EMPTY
-                }
+                    bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
 
-                updateBoard()
-            }
-        })
+                    updateBoard()
+                }
+            })
 
         chessBoardCells.append("text")
             .attr("class", "cell-text")
@@ -179,6 +137,46 @@
             .style("text-anchor", "middle")
             .style("opacity", 0.75)
             .attr("transform", `translate(-15, ${cellSize / 1.5})`)
+    }
+
+    function bulkChangeStatus(x, y, status) {
+        // same row
+        for (let row = 0; row < a; row ++) {
+            if (row !== x
+                && locToCell[row][y].status !== cellStatus.QUEEN
+                && locToCell[row][y].status !== cellStatus.BLOCKED)
+                locToCell[row][y].status = status
+        }
+
+
+        // same col
+        for (let col = 0; col < a; col ++) {
+            if (col !== y
+                && locToCell[x][col].status !== cellStatus.QUEEN
+                && locToCell[x][col].status !== cellStatus.BLOCKED)
+                locToCell[x][col].status = status
+        }
+
+
+        // same diagonal
+        for (let row = x - 1, col = y - 1; row >= 0 && col >= 0; row --, col --) {
+            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+                locToCell[row][col].status = status
+        }
+
+
+        for (let row = x + 1, col = y + 1; row < a && col < a; row ++, col ++) {
+            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+                locToCell[row][col].status = status
+        }
+        for (let row = x + 1, col = y - 1; row < a && col >= 0; row ++, col --) {
+            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+                locToCell[row][col].status = status
+        }
+        for (let row = x - 1, col = y + 1; row >= 0 && col < a; row --, col ++) {
+            if (locToCell[row][col].status !== cellStatus.QUEEN && locToCell[row][col].status !== cellStatus.BLOCKED)
+                locToCell[row][col].status = status
+        }
     }
 
     function updateBoard() {
@@ -227,7 +225,8 @@
         return result
     }
 
-    initBoard(10)
+    a = 15
+    initBoard()
 </script>
 </body>
 </html>
