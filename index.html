@@ -25,10 +25,10 @@
 
     <form class="form-inline" onsubmit="return false">
         <div class="form-group mb-2">
-            <label for="board-size-a" class="sr-only">Size A</label>
-            <input id="board-size-a" type="number" placeholder="Size a" class="form-control">
-            <label for="board-size-b" class="sr-only">Size B</label>
-            <input id="board-size-b" type="number" placeholder="Size b" class="form-control mx-sm-3">
+            <label for="board-size-a" class="sr-only">Size Width</label>
+            <input id="board-size-a" type="number" placeholder="Size Width" class="form-control">
+            <label for="board-size-b" class="sr-only">Size Height</label>
+            <input id="board-size-b" type="number" placeholder="Size Height" class="form-control mx-sm-3">
         </div>
         <button id="start" class="btn btn-primary mb-2">Start</button>
         <div class="form-group mb-2 mx-sm-3 form-check">
@@ -176,16 +176,16 @@
         let colLabels = []
         let rowLabels = []
 
-        for (let row = 0; row < b; row ++) {
+        for (let row = 0; row < a; row ++) {
             rowLabels.push(numToLetter(row + 1))
         }
 
-        for (let col = 0; col < a; col ++) {
+        for (let col = 0; col < b; col ++) {
             colLabels.push(col + 1)
         }
 
-        chessBoardSvg.selectAll(".colLabel")
-            .data(colLabels)
+        chessBoardSvg.selectAll(".rowLabel")
+            .data(rowLabels)
             .enter().append("text")
             .text((d) => d)
             .attr("y", 0)
@@ -195,8 +195,8 @@
             .style("opacity", 0.75)
             .attr("transform", `translate(${cellSize / 2}, -6)`)
 
-        chessBoardSvg.selectAll(".rowLabel")
-            .data(rowLabels)
+        chessBoardSvg.selectAll(".colLabel")
+            .data(colLabels)
             .enter().append("text")
             .text((d) => d)
             .attr("y", (d, i) => i * cellSize)
