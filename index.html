@@ -11,16 +11,27 @@
 <script>
     const cellSize = 40
     const margin = 21
+    const queenText = "\u2655"
+    const cellStatus = {
+        EMPTY: 'empty',
+        QUEEN: 'queen',
+        QUEEN_HOVER: 'queen_hover',
+        BLOCKED: 'blocked',
+        BLOCKED_HOVER: 'blocked_hover'
+    }
 
     const chessBoardDiv = d3.select("#chess-board")
+
     let chessBoardSvg
+    let cells
+    let locToCell
 
     function initBoard(a) {
 
         const boardSize = a * cellSize
 
-        let cells = []
-        let locToCell = {}
+        cells = []
+        locToCell = {}
 
         for (let row = 0; row < a; row ++) {
             locToCell[row] = {}
@@ -29,11 +40,8 @@
                 let cell = {
                     x: row,
                     y: col,
-                    defaultFill: ((row % 2 === 0 && col % 2 === 0)
-                        || (row % 2 === 1 && col % 2 === 1)) ? "beige" : "tan",
-                    fill: undefined,
-                    hasQueen: false,
-                    available: true
+                    fill: ((row % 2 === 0 && col % 2 === 0) || (row % 2 === 1 && col % 2 === 1)) ? "beige" : "tan",
+                    status: cellStatus.EMPTY
                 }
                 cells.push(cell)
                 locToCell[row][col] = cell
@@ -59,12 +67,26 @@
             .attr("y", (d) => d.y * cellSize)
             .attr("width", `${cellSize}px`)
             .attr("height", `${cellSize}px`)
-            .attr("fill", (d) => d.defaultFill)
+            .attr("fill", (d) => d.fill)
+            .on("mouseover", function (event, d) {
+                if (d.status !== cellStatus.QUEEN && d.status !== cellStatus.BLOCKED) {
+                    locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+                    updateBoard()
+                }
+            }).on("mouseout", function (event, d) {
+            if (d.status === cellStatus.QUEEN_HOVER) {
+                locToCell[d.x][d.y].status = cellStatus.EMPTY
+                updateBoard()
+            }
+        })
 
         chessBoardCells.append("text")
             .attr("class", "cell-text")
             .attr("x", (d) => d.x * cellSize)
             .attr("y", (d) => d.y * cellSize)
+            .style("font-size", `${cellSize}px`)
+            .style("pointer-events", "none")
+            .attr("transform", `translate(8, 32)`)
 
         let colLabels = []
         let rowLabels = []
@@ -98,6 +120,20 @@
             .style("text-anchor", "middle")
             .style("opacity", 0.75)
             .attr("transform", `translate(-15, ${cellSize / 1.5})`)
+    }
+
+    function updateBoard() {
+        d3.selectAll(".cell-text")
+            .text((d) => {
+                switch (d.status) {
+                    case cellStatus.QUEEN:
+                    case cellStatus.QUEEN_HOVER:
+                        return queenText
+
+                    default:
+                        return ""
+                }
+            })
     }
 
     function numToLetter(num) {
