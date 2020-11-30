@@ -24,9 +24,11 @@
     <span class="navbar-brand mb-0 h1">N Queens</span>
 
     <form class="form-inline" onsubmit="return false">
-        <div class="form-group mb-2 mx-sm-3">
-            <label for="board-size" class="sr-only">Size</label>
-            <input id="board-size" type="number" placeholder="Size" class="form-control">
+        <div class="form-group mb-2">
+            <label for="board-size-a" class="sr-only">Size A</label>
+            <input id="board-size-a" type="number" placeholder="Size a" class="form-control">
+            <label for="board-size-b" class="sr-only">Size B</label>
+            <input id="board-size-b" type="number" placeholder="Size b" class="form-control mx-sm-3">
         </div>
         <button id="start" class="btn btn-primary mb-2">Start</button>
         <div class="form-group mb-2 mx-sm-3 form-check">
@@ -35,9 +37,8 @@
         </div>
     </form>
 </nav>
-<div class="container">
-    <div id="chess-board"></div>
-</div>
+
+<div id="chess-board"></div>
 
 
 <script src="js/jquery-3.5.1.min.js"></script>
@@ -58,6 +59,7 @@
     const chessBoardDiv = d3.select("#chess-board")
 
     let a
+    let b
     let isHelpMode = false
     let isGameOver = false
 
@@ -67,7 +69,8 @@
 
     function initBoard() {
 
-        const boardSize = a * cellSize
+        const boardWidth = a * cellSize
+        const boardHeight = b * cellSize
 
         cells = []
         locToCell = {}
@@ -75,7 +78,7 @@
         for (let row = 0; row < a; row ++) {
             locToCell[row] = {}
 
-            for (let col = 0; col < a; col ++) {
+            for (let col = 0; col < b; col ++) {
                 let cell = {
                     x: row,
                     y: col,
@@ -91,8 +94,8 @@
         chessBoardDiv.selectAll("*").remove()
 
         chessBoardSvg = chessBoardDiv.append("svg")
-            .attr("width", `${boardSize + margin}px`)
-            .attr("height", `${boardSize + margin}px`)
+            .attr("width", `${boardWidth + margin}px`)
+            .attr("height", `${boardHeight + margin}px`)
             .append("g")
             .attr("transform", `translate(${margin}, ${margin})`)
 
@@ -173,12 +176,12 @@
         let colLabels = []
         let rowLabels = []
 
-        for (let row = 0; row < a; row ++) {
-            rowLabels.push(row + 1)
+        for (let row = 0; row < b; row ++) {
+            rowLabels.push(numToLetter(row + 1))
         }
 
         for (let col = 0; col < a; col ++) {
-            colLabels.push(numToLetter(col + 1))
+            colLabels.push(col + 1)
         }
 
         chessBoardSvg.selectAll(".colLabel")
@@ -222,7 +225,7 @@
         }
 
         // same col
-        for (let col = 0; col < a; col ++) {
+        for (let col = 0; col < b; col ++) {
             if (col !== y
                 && locToCell[x][col].status !== cellStatus.QUEEN
                 && locToCell[x][col].status !== cellStatus.BLOCKED
@@ -248,7 +251,7 @@
             }
         }
 
-        for (let row = x + 1, col = y + 1; row < a && col < a; row ++, col ++) {
+        for (let row = x + 1, col = y + 1; row < a && col < b; row ++, col ++) {
             if (locToCell[row][col].status !== cellStatus.QUEEN
                 && locToCell[row][col].status !== cellStatus.BLOCKED
                 && !locToCell[row][col].disabled) {
@@ -270,7 +273,7 @@
                 }
             }
         }
-        for (let row = x - 1, col = y + 1; row >= 0 && col < a; row --, col ++) {
+        for (let row = x - 1, col = y + 1; row >= 0 && col < b; row --, col ++) {
             if (locToCell[row][col].status !== cellStatus.QUEEN
                 && locToCell[row][col].status !== cellStatus.BLOCKED
                 && !locToCell[row][col].disabled) {
@@ -335,10 +338,12 @@
     }
 
     $("#start").click(function () {
-        let size = parseInt($("#board-size").val())
+        let sizeA = parseInt($("#board-size-a").val())
+        let sizeB = parseInt($("#board-size-b").val())
 
-        if (!isNaN(size) && size > 0 && size <= 30) {
-            a = size
+        if (!isNaN(sizeA) && sizeA > 0 && sizeA <= 30 && !isNaN(sizeB) && sizeB > 0 && sizeB <= 30) {
+            a = sizeA
+            b = sizeB
             initBoard()
         }
     })
