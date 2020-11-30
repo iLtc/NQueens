@@ -9,77 +9,117 @@
 
 <script src="js/d3.min.js"></script>
 <script>
-    let fieldSize = 40
-    let boardDimension = 8
-    let boardSize = boardDimension * fieldSize
+    const cellSize = 40
+    const margin = 21
 
-    let board =[]
+    const chessBoardDiv = d3.select("#chess-board")
+    let chessBoardSvg
 
-    for(let i = 0; i < boardDimension * boardDimension; i++) {
-        board.push({
-            x: i % boardDimension,
-            y: Math.floor(i / boardDimension),
-            piece: 0
-        });
+    function initBoard(a) {
+
+        const boardSize = a * cellSize
+
+        let cells = []
+        let locToCell = {}
+
+        for (let row = 0; row < a; row ++) {
+            locToCell[row] = {}
+
+            for (let col = 0; col < a; col ++) {
+                let cell = {
+                    x: row,
+                    y: col,
+                    defaultFill: ((row % 2 === 0 && col % 2 === 0)
+                        || (row % 2 === 1 && col % 2 === 1)) ? "beige" : "tan",
+                    fill: undefined,
+                    hasQueen: false,
+                    available: true
+                }
+                cells.push(cell)
+                locToCell[row][col] = cell
+            }
+        }
+
+        chessBoardDiv.selectAll("*").remove()
+
+        chessBoardSvg = chessBoardDiv.append("svg")
+            .attr("width", `${boardSize + margin}px`)
+            .attr("height", `${boardSize + margin}px`)
+            .append("g")
+            .attr("transform", `translate(${margin}, ${margin})`)
+
+        const chessBoardCells = chessBoardSvg.selectAll(".cells")
+            .data(cells)
+            .enter()
+            .append("g")
+
+        chessBoardCells.append("rect")
+            .attr("class", "cell-rect")
+            .attr("x", (d) => d.x * cellSize)
+            .attr("y", (d) => d.y * cellSize)
+            .attr("width", `${cellSize}px`)
+            .attr("height", `${cellSize}px`)
+            .attr("fill", (d) => d.defaultFill)
+
+        chessBoardCells.append("text")
+            .attr("class", "cell-text")
+            .attr("x", (d) => d.x * cellSize)
+            .attr("y", (d) => d.y * cellSize)
+
+        let colLabels = []
+        let rowLabels = []
+
+        for (let row = 0; row < a; row ++) {
+            rowLabels.push(row + 1)
+        }
+
+        for (let col = 0; col < a; col ++) {
+            colLabels.push(numToLetter(col + 1))
+        }
+
+        chessBoardSvg.selectAll(".colLabel")
+            .data(colLabels)
+            .enter().append("text")
+            .text((d) => d)
+            .attr("y", 0)
+            .attr("x", (d, i) => i * cellSize)
+            .style("font-size", `${cellSize / 3}px`)
+            .style("text-anchor", "middle")
+            .style("opacity", 0.75)
+            .attr("transform", `translate(${cellSize / 2}, -6)`)
+
+        chessBoardSvg.selectAll(".rowLabel")
+            .data(rowLabels)
+            .enter().append("text")
+            .text((d) => d)
+            .attr("y", (d, i) => i * cellSize)
+            .attr("x", 0)
+            .style("font-size", `${cellSize / 3}px`)
+            .style("text-anchor", "middle")
+            .style("opacity", 0.75)
+            .attr("transform", `translate(-15, ${cellSize / 1.5})`)
     }
 
-    let div = d3.select("#chess-board")
-    let svg = div.append("svg")
-        .attr("width", boardSize + 21 + "px")
-        .attr("height", boardSize + 21 + "px")
-        .append("g")
-        .attr("transform", "translate(21, 21)");
+    function numToLetter(num) {
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        let result = ""
 
+        while (num > 0) {
+            let charIndex = num % alphabet.length
+            num = Math.floor(num / alphabet.length)
 
-    svg.selectAll(".fields")
-        .data(board)
-        .enter()
-        .append("g")
-        .append("rect")
-        .style("class", "fields")
-        .style("class", "rects")
-        .attr("x", function (d) {
-            return d.x*fieldSize;
-        })
-        .attr("y", function (d) {
-            return d.y*fieldSize;
-        })
-        .attr("width", fieldSize + "px")
-        .attr("height", fieldSize + "px")
-        .style("fill", function (d) {
-            if ( ((d.x % 2 == 0) && (d.y % 2 == 0)) || ((d.x % 2 == 1) && (d.y % 2 == 1)) )
-                return "beige";
-            else
-                return "tan";
-        });
+            if(charIndex - 1 === -1){
+                charIndex = alphabet.length
+                num --;
+            }
 
-    let cols = ["a", "b", "c", "d", "e", "f", "g", "h"]
-    let rows = [1, 2, 3, 4, 5, 6, 7, 8]
+            result = alphabet.charAt(charIndex-1) + result;
+        }
 
-    gridSize = 40
-    textopacity = 0.75
+        return result
+    }
 
-    svg.selectAll(".colLabel")
-        .data(cols)
-        .enter().append("text")
-        .text(function (d) { return d; })
-        .attr("y", 0)
-        .attr("x", function (d, i) { return i * gridSize; })
-        .style("font-size", gridSize/3 + "px")
-        .style("text-anchor", "middle")
-        .style("opacity", textopacity)
-        .attr("transform", "translate(" + gridSize / 2 + ", " + -6 + "  )")
-
-    svg.selectAll(".rowLabel")
-        .data(rows)
-        .enter().append("text")
-        .text(function(d) { return d; })
-        .attr("y", function(d, i) { return i * gridSize; })
-        .attr("x", 0)
-        .style("font-size", gridSize/3 + "px")
-        .style("text-anchor", "middle")
-        .style("opacity", textopacity)
-        .attr("transform", "translate(-15," + gridSize / 1.5 + ")")
+    initBoard(10)
 </script>
 </body>
 </html>
