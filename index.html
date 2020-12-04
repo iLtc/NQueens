@@ -165,13 +165,13 @@
                 updateBoard()
             })
 
-        chessBoardCells.append("text")
-            .attr("class", "cell-text")
+        chessBoardCells.append("svg:image")
+            .attr("class", "cell-image")
             .attr("x", (d) => d.x * cellSize)
             .attr("y", (d) => d.y * cellSize)
-            .style("font-size", `${cellSize}px`)
+            .attr("width", cellSize)
+            .attr("height", cellSize)
             .style("pointer-events", "none")
-            .attr("transform", `translate(8, 32)`)
 
         let colLabels = []
         let rowLabels = []
@@ -305,12 +305,12 @@
                 }
             })
 
-        d3.selectAll(".cell-text")
-            .text((d) => {
+        d3.selectAll(".cell-image")
+            .attr("xlink:href", (d) => {
                 switch (d.status) {
                     case cellStatus.QUEEN:
                     case cellStatus.QUEEN_HOVER:
-                        return queenText
+                        return "image/queen.svg"
 
                     default:
                         return ""
@@ -352,6 +352,10 @@
         isHelpMode = $(this).is(':checked')
         updateBoard()
     })
+
+    a = 20
+    b = 20
+    initBoard()
 </script>
 </body>
 </html>
