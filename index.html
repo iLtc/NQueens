@@ -13,8 +13,8 @@
             margin-bottom: 20px;
         }
 
-        #information {
-            text-align: center;
+        .btn-group {
+            width: 100%;
         }
 
         #chess-board svg {
@@ -26,16 +26,25 @@
 <body>
 <nav class="navbar navbar-light bg-light">
     <span class="navbar-brand mb-0 h1">N Queens</span>
-    <button class="btn btn-primary" data-toggle="modal" data-target="#new-game-modal" data-backdrop="static">New Game</button>
 </nav>
 
-<div id="information">
-    Player 1's Turn
+<div class="container">
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="alert alert-primary" role="alert">
+                Player 1's Turn
+            </div>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#new-game-modal" data-backdrop="static">New Game</button>
+                <button type="button" class="btn btn-secondary">Restart</button>
+                <button type="button" class="btn btn-danger">Undo</button>
+            </div>
+        </div>
+        <div class="col-lg-9" id="chess-board">
+
+        </div>
+    </div>
 </div>
-
-<hr>
-
-<div id="chess-board"></div>
 
 <div class="modal fade" id="new-game-modal" tabindex="-1" aria-labelledby="NewGameModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
