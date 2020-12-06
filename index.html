@@ -60,6 +60,9 @@
 
             <div class="alert alert-danger" role="alert" id="game-over-info" style="display: none"></div>
             <div class="alert alert-primary" role="alert" id="info"></div>
+            <div class="alert alert-warning" role="alert" id="team-mode-info" style="display: none">
+                Team Mode is on! Queens placed by the same player will be in the same team and will not kill each other.
+            </div>
 
             <div class="card">
                 <ul class="list-group list-group-flush text-white" id="score-ul"></ul>
@@ -143,6 +146,22 @@
                         <label for="player-4-name" class="col-sm-3 col-form-label">Player 4's Name</label>
                         <div class="col-sm-9">
                             <input type="text" class="form-control" id="player-4-name">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <legend class="col-form-label col-sm-3 pt-0">Team Mode</legend>
+                        <div class="col-sm-9">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="team-mode-on" name="team-mode" value="on" >
+                                <label class="form-check-label" for="team-mode-on">On</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="team-mode-off" name="team-mode" value="off" checked>
+                                <label class="form-check-label" for="team-mode-off">Off</label>
+                            </div>
+                            <small class="form-text text-muted">
+                                If Team Mode is on, queens placed by the same player will be in the same team and will not kill each other.
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -358,6 +377,10 @@
                 if (cell.status === cellStatus.EMPTY) {
                     return
                 }
+
+                if (isTeamMode && cell.status === cellStatus.BLOCKED_MY_TEAM) {
+                    return
+                }
             }
         }
 
@@ -534,6 +557,8 @@
             a = sizeA
             b = sizeB
 
+            isTeamMode = ($('input[name=team-mode]:checked').val() === 'on')
+
             numberOfPlayers = parseInt($('input[name=number-players]:checked').val())
 
             playerNames = []
@@ -566,6 +591,12 @@
             $("#game-over-info").slideUp()
 
             updateScores()
+
+            if (isTeamMode) {
+                $("#team-mode-info").slideDown()
+            } else {
+                $("#team-mode-info").slideUp()
+            }
         }
     }
 
@@ -591,6 +622,8 @@
         calBoard()
         updateBoard()
         updateScores()
+
+        $("#game-over-info").slideUp()
     })
 
     function nextPlayer(reverse = false) {
