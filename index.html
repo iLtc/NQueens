@@ -18,6 +18,26 @@
             margin-bottom: 1rem;
         }
 
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        #player-1-score {
+            background-color: #17a2b8;
+        }
+
+        #player-2-score {
+            background-color: #ffc107;
+        }
+
+        #player-3-score {
+            background-color: #343a40;
+        }
+
+        #player-4-score {
+            background-color: #007bff;
+        }
+
         #chess-board svg {
             display: block;
             margin: auto;
@@ -32,16 +52,19 @@
 <div class="container">
     <div class="row">
         <div class="col-lg-3">
-            <div class="alert alert-primary" role="alert" id="info"></div>
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#new-game-modal" data-backdrop="static">New Game</button>
-                <button type="button" class="btn btn-secondary">Restart</button>
+                <button type="button" class="btn btn-secondary" id="restart-btn">Restart</button>
                 <button type="button" class="btn btn-danger" id="undo-btn">Undo</button>
             </div>
-            <div class="form-group form-check">
-                <input type="checkbox" id="help-mode" name="help-mode" value="help-mode" class="form-check-input">
-                <label for="help-mode" class="form-check-label"> Help Mode</label>
+
+            <div class="alert alert-danger" role="alert" id="game-over-info" style="display: none"></div>
+            <div class="alert alert-primary" role="alert" id="info"></div>
+
+            <div class="card">
+                <ul class="list-group list-group-flush text-white" id="score-ul"></ul>
             </div>
+
             <div class="card">
                 <div class="card-header">Game Steps</div>
                 <ul class="list-group list-group-flush" id="game-steps-ul"></ul>
@@ -138,12 +161,12 @@
 <script>
     const cellSize = 40
     const margin = 21
-    const queenText = "\u2655"
     const cellStatus = {
         EMPTY: 'empty',
         QUEEN: 'queen',
         QUEEN_HOVER: 'queen_hover',
-        BLOCKED: 'blocked',
+        BLOCKED_OTHER_TEAM: 'blocked_other_team',
+        BLOCKED_MY_TEAM: 'blocked_my_team',
         BLOCKED_HOVER: 'blocked_hover'
     }
 
@@ -154,8 +177,8 @@
     let numberOfPlayers = 1
     let currentPlayer = undefined
     let playerNames = []
-    let isHelpMode = false
-    let isGameOver = false
+    let playerScores = []
+    let isTeamMode = false
     let steps = []
 
     let chessBoardSvg
@@ -179,7 +202,7 @@
                     y: col,
                     fill: ((row % 2 === 0 && col % 2 === 0) || (row % 2 === 1 && col % 2 === 1)) ? "#F5F5DC" : "#D2B48C",
                     status: cellStatus.EMPTY,
-                    disabled: false
+                    player: undefined
                 }
                 cells.push(cell)
                 locToCell[row][col] = cell
@@ -251,145 +274,151 @@
             .style("text-anchor", "middle")
             .style("opacity", 0.75)
             .attr("transform", `translate(-15, ${cellSize / 1.5})`)
-
-        isGameOver = false
-        steps = []
     }
 
     function chessboardMouseover (d) {
-        if (isGameOver || d.status === cellStatus.QUEEN)
+        if (d.status === cellStatus.QUEEN)
             return
 
-        if (isHelpMode) {
-            if (d.status !== cellStatus.BLOCKED) {
-                locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+        locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
 
-                bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
-
-                updateBoard()
-            }
-        } else {
-            locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
-
-            updateBoard()
-        }
+        calBoard()
+        updateBoard()
     }
 
     function chessboardMouseout(d) {
-        if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+        if (d.status !== cellStatus.QUEEN_HOVER)
             return
 
-        if (d.disabled) {
-            locToCell[d.x][d.y].status = cellStatus.BLOCKED
-        } else {
-            locToCell[d.x][d.y].status = cellStatus.EMPTY
-        }
+        locToCell[d.x][d.y].status = cellStatus.EMPTY
 
-        if (isHelpMode) {
-            bulkChangeStatus(d.x, d.y, cellStatus.EMPTY)
-        }
-
+            calBoard()
         updateBoard()
     }
 
     function chessboardClick(d) {
-        if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+        if (d.status !== cellStatus.QUEEN_HOVER)
             return
-
-        if (d.disabled) {
-            isGameOver = true
-
-            locToCell[d.x][d.y].status = cellStatus.BLOCKED
-            updateBoard()
-
-            alert("You lost the game!")
-            return
-        }
 
         locToCell[d.x][d.y].status = cellStatus.QUEEN
-
-        bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
-
-        updateBoard()
+        locToCell[d.x][d.y].player = currentPlayer
 
         steps.push({x: d.x, y: d.y, player: currentPlayer})
         appendStep(`${playerNames[currentPlayer]}: place at ${numToLetter(d.x + 1)}${d.y + 1}`)
 
+        playerScores[currentPlayer] += 1
+
         nextPlayer()
+        calBoard()
+        updateBoard()
+        updateScores()
+
+        isGameOver()
     }
 
-    function bulkChangeStatus(x, y, status) {
+    function getBlockCells(x, y) {
+        cells = []
+
         // same row
         for (let row = 0; row < a; row ++) {
-            if (row !== x
-                && locToCell[row][y].status !== cellStatus.QUEEN
-                && locToCell[row][y].status !== cellStatus.BLOCKED
-                && !locToCell[row][y].disabled) {
-                locToCell[row][y].status = status
-
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[row][y].disabled = true
-                }
+            if (row !== x) {
+                cells.push(locToCell[row][y])
             }
         }
 
         // same col
         for (let col = 0; col < b; col ++) {
-            if (col !== y
-                && locToCell[x][col].status !== cellStatus.QUEEN
-                && locToCell[x][col].status !== cellStatus.BLOCKED
-                && !locToCell[x][col].disabled) {
-                locToCell[x][col].status = status
-
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[x][col].disabled = true
-                }
+            if (col !== y) {
+                cells.push(locToCell[x][col])
             }
         }
 
         // same diagonal
         for (let row = x - 1, col = y - 1; row >= 0 && col >= 0; row --, col --) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN
-                && locToCell[row][col].status !== cellStatus.BLOCKED
-                && !locToCell[row][col].disabled) {
-                locToCell[row][col].status = status
-
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[row][col].disabled = true
-                }
-            }
+            cells.push(locToCell[row][col])
         }
-
         for (let row = x + 1, col = y + 1; row < a && col < b; row ++, col ++) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN
-                && locToCell[row][col].status !== cellStatus.BLOCKED
-                && !locToCell[row][col].disabled) {
-                locToCell[row][col].status = status
-
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[row][col].disabled = true
-                }
-            }
+            cells.push(locToCell[row][col])
         }
         for (let row = x + 1, col = y - 1; row < a && col >= 0; row ++, col --) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN
-                && locToCell[row][col].status !== cellStatus.BLOCKED
-                && !locToCell[row][col].disabled) {
-                locToCell[row][col].status = status
+            cells.push(locToCell[row][col])
+        }
+        for (let row = x - 1, col = y + 1; row >= 0 && col < b; row --, col ++) {
+            cells.push(locToCell[row][col])
+        }
 
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[row][col].disabled = true
+        return cells
+    }
+
+    function isGameOver() {
+        for (let row = 0; row < a; row ++) {
+            for (let col = 0; col < b; col++) {
+                let cell = locToCell[row][col]
+
+                if (cell.status === cellStatus.EMPTY) {
+                    return
                 }
             }
         }
-        for (let row = x - 1, col = y + 1; row >= 0 && col < b; row --, col ++) {
-            if (locToCell[row][col].status !== cellStatus.QUEEN
-                && locToCell[row][col].status !== cellStatus.BLOCKED
-                && !locToCell[row][col].disabled) {
-                locToCell[row][col].status = status
 
-                if (status === cellStatus.BLOCKED) {
-                    locToCell[row][col].disabled = true
+        $("#game-over-info").html(`Game Over! ${playerNames[currentPlayer]} lost the game.`)
+        $("#game-over-info").slideDown()
+    }
+
+    function calBoard() {
+        let queensOtherTeam = []
+        let queensMyTeam = []
+        let queenHover = undefined
+
+        for (let row = 0; row < a; row ++) {
+            for (let col = 0; col < b; col ++) {
+                let cell = locToCell[row][col]
+
+                switch (cell.status){
+                    case cellStatus.QUEEN:
+                        if (cell.player === currentPlayer) {
+                            queensMyTeam.push(cell)
+                        } else {
+                            queensOtherTeam.push(cell)
+                        }
+                        break
+
+                    case cellStatus.QUEEN_HOVER:
+                        queenHover = cell
+                        break
+
+                    default:
+                        cell.status = cellStatus.EMPTY
+                }
+            }
+        }
+
+        for (let cell of queensOtherTeam) {
+            let blockedCells = getBlockCells(cell.x, cell.y)
+
+            for (let blockedCell of blockedCells) {
+                if (blockedCell.status === cellStatus.EMPTY) {
+                    blockedCell.status = cellStatus.BLOCKED_OTHER_TEAM
+                }
+            }
+        }
+
+        for (let cell of queensMyTeam) {
+            let blockedCells = getBlockCells(cell.x, cell.y)
+
+            for (let blockedCell of blockedCells) {
+                if (blockedCell.status === cellStatus.EMPTY) {
+                    blockedCell.status = cellStatus.BLOCKED_MY_TEAM
+                }
+            }
+        }
+
+        if (queenHover !== undefined) {
+            let blockedCells = getBlockCells(queenHover.x, queenHover.y)
+
+            for (let blockedCell of blockedCells) {
+                if (blockedCell.status === cellStatus.EMPTY) {
+                    blockedCell.status = cellStatus.BLOCKED_HOVER
                 }
             }
         }
@@ -398,20 +427,44 @@
     function updateBoard() {
         d3.selectAll(".cell-rect")
             .attr("fill", (d) => {
-                if (!isHelpMode) {
-                    return d.fill
+                if (isTeamMode) {
+                    switch (d.status) {
+                        case cellStatus.BLOCKED_HOVER:
+                            return d.fill === "#F5F5DC" ? "#ABF899" : "#92CA61"
+
+                        case cellStatus.BLOCKED_MY_TEAM:
+                            return d.fill === "#F5F5DC" ? "#7AF96E" : "#69D946"
+
+                        case cellStatus.BLOCKED_OTHER_TEAM:
+                            return d.fill === "#F5F5DC" ? "#7A7A6D" : "#685945"
+
+                        default:
+                            return d.fill
+                    }
+                } else {
+                    switch (d.status) {
+                        case cellStatus.BLOCKED_HOVER:
+                            return d.fill === "#F5F5DC" ? "#ABF899" : "#92CA61"
+
+                        case cellStatus.BLOCKED_MY_TEAM:
+                        case cellStatus.BLOCKED_OTHER_TEAM:
+                            return d.fill === "#F5F5DC" ? "#7A7A6D" : "#685945"
+
+                        default:
+                            return d.fill
+                    }
+                }
+            })
+            .style("pointer-events", (d) => {
+                if (d.status === cellStatus.QUEEN || d.status === cellStatus.BLOCKED_OTHER_TEAM) {
+                    return "none"
                 }
 
-                switch (d.status) {
-                    case cellStatus.BLOCKED_HOVER:
-                        return d.fill === "#F5F5DC" ? "#FF8080" : "#FF6666"
-
-                    case cellStatus.BLOCKED:
-                        return d.fill === "#F5F5DC" ? "#42423E" : "#403D39"
-
-                    default:
-                        return d.fill
+                if (!isTeamMode && d.status === cellStatus.BLOCKED_MY_TEAM) {
+                    return "none"
                 }
+
+                return ""
             })
 
         d3.selectAll(".cell-image")
@@ -425,6 +478,21 @@
                         return ""
                 }
             })
+            .attr("class", (d) => {
+                if (d.status === cellStatus.QUEEN) {
+                    return `cell-image player-${d.player}-image`
+                }
+                return "cell-image"
+            })
+    }
+
+    function updateScores() {
+        $("#score-ul").html("")
+        for (let i = 0; i < numberOfPlayers; i ++) {
+            $("#score-ul").append(
+                `<li class="list-group-item score-item" id="player-${i + 1}-score">${playerNames[i]}: ${playerScores[i]}</li>`
+            )
+        }
     }
 
     function numToLetter(num) {
@@ -445,11 +513,6 @@
 
         return result
     }
-
-    $("#help-mode").click(function () {
-        isHelpMode = $(this).is(':checked')
-        updateBoard()
-    })
 
     $("input[type=radio][name=number-players]").on("change", function () {
         const numberOfPlayers = Number($(this).val())
@@ -474,6 +537,7 @@
             numberOfPlayers = parseInt($('input[name=number-players]:checked').val())
 
             playerNames = []
+            playerScores = []
 
             for (let i = 1; i <= numberOfPlayers; i ++) {
                 let name = $(`#player-${i}-name`).val()
@@ -483,6 +547,8 @@
                 } else {
                     playerNames.push(`Player ${i} (${name})`)
                 }
+
+                playerScores.push(0)
             }
 
             currentPlayer = undefined
@@ -494,7 +560,12 @@
             $('#new-game-modal').modal('hide')
 
             $("#game-steps-ul").html("")
+
             steps = []
+
+            $("#game-over-info").slideUp()
+
+            updateScores()
         }
     }
 
@@ -502,7 +573,9 @@
         $("#game-steps-ul").append(`<li class="list-group-item">${message}</li>`)
     }
 
-    $("#undo-btn").click(function () {
+    $("#restart-btn").on("click", () => startGame())
+
+    $("#undo-btn").on("click", function () {
         if (steps.length === 0) {
             return
         }
@@ -512,10 +585,12 @@
         locToCell[step.x][step.y].status = cellStatus.EMPTY
 
         appendStep(`${playerNames[step.player]}: undo at ${numToLetter(step.x + 1)}${step.y + 1}`)
-
-        updateBoard()
+        playerScores[step.player] -= 1
 
         nextPlayer(true)
+        calBoard()
+        updateBoard()
+        updateScores()
     })
 
     function nextPlayer(reverse = false) {
@@ -532,11 +607,7 @@
         $("#info").html(`${playerNames[currentPlayer]}'s Turn`)
     }
 
-    // $('#new-game-modal').modal({backdrop: 'static'})
-    a = 20
-    b = 20
-    playerNames = ["Player 1 (Alan)"]
-    initBoard()
+    $('#new-game-modal').modal({backdrop: 'static'})
 </script>
 </body>
 </html>
