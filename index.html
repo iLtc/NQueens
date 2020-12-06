@@ -15,6 +15,7 @@
 
         .btn-group {
             width: 100%;
+            margin-bottom: 1rem;
         }
 
         #chess-board svg {
@@ -31,18 +32,22 @@
 <div class="container">
     <div class="row">
         <div class="col-lg-3">
-            <div class="alert alert-primary" role="alert">
-                Player 1's Turn
-            </div>
+            <div class="alert alert-primary" role="alert" id="info"></div>
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#new-game-modal" data-backdrop="static">New Game</button>
                 <button type="button" class="btn btn-secondary">Restart</button>
-                <button type="button" class="btn btn-danger">Undo</button>
+                <button type="button" class="btn btn-danger" id="undo-btn">Undo</button>
+            </div>
+            <div class="form-group form-check">
+                <input type="checkbox" id="help-mode" name="help-mode" value="help-mode" class="form-check-input">
+                <label for="help-mode" class="form-check-label"> Help Mode</label>
+            </div>
+            <div class="card">
+                <div class="card-header">Game Steps</div>
+                <ul class="list-group list-group-flush" id="game-steps-ul"></ul>
             </div>
         </div>
-        <div class="col-lg-9" id="chess-board">
-
-        </div>
+        <div class="col-lg-9" id="chess-board"></div>
     </div>
 </div>
 
@@ -147,9 +152,11 @@
     let a
     let b
     let numberOfPlayers = 1
+    let currentPlayer = undefined
     let playerNames = []
     let isHelpMode = false
     let isGameOver = false
+    let steps = []
 
     let chessBoardSvg
     let cells
@@ -200,58 +207,9 @@
             .attr("height", `${cellSize}px`)
             .attr("fill", (d) => d.fill)
             .style("cursor", "pointer")
-            .on("mouseover", function (event, d) {
-                if (isGameOver || d.status === cellStatus.QUEEN)
-                    return
-
-                if (isHelpMode) {
-                    if (d.status !== cellStatus.BLOCKED) {
-                        locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
-
-                        bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
-
-                        updateBoard()
-                    }
-                } else {
-                    locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
-
-                    updateBoard()
-                }
-            }).on("mouseout", function (event, d) {
-                if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
-                    return
-
-                if (d.disabled) {
-                    locToCell[d.x][d.y].status = cellStatus.BLOCKED
-                } else {
-                    locToCell[d.x][d.y].status = cellStatus.EMPTY
-                }
-
-                if (isHelpMode) {
-                    bulkChangeStatus(d.x, d.y, cellStatus.EMPTY)
-                }
-
-                updateBoard()
-            }).on("click", function (event, d) {
-                if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
-                    return
-
-                if (d.disabled) {
-                    isGameOver = true
-
-                    locToCell[d.x][d.y].status = cellStatus.BLOCKED
-                    updateBoard()
-
-                    alert("You lost the game!")
-                    return
-                }
-
-                locToCell[d.x][d.y].status = cellStatus.QUEEN
-
-                bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
-
-                updateBoard()
-            })
+            .on("mouseover", (event, d) => chessboardMouseover(d))
+            .on("mouseout", (event, d) => chessboardMouseout(d))
+            .on("click", (event, d) => chessboardClick(d))
 
         chessBoardCells.append("svg:image")
             .attr("class", "cell-image")
@@ -295,6 +253,69 @@
             .attr("transform", `translate(-15, ${cellSize / 1.5})`)
 
         isGameOver = false
+        steps = []
+    }
+
+    function chessboardMouseover (d) {
+        if (isGameOver || d.status === cellStatus.QUEEN)
+            return
+
+        if (isHelpMode) {
+            if (d.status !== cellStatus.BLOCKED) {
+                locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+
+                bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED_HOVER)
+
+                updateBoard()
+            }
+        } else {
+            locToCell[d.x][d.y].status = cellStatus.QUEEN_HOVER
+
+            updateBoard()
+        }
+    }
+
+    function chessboardMouseout(d) {
+        if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+            return
+
+        if (d.disabled) {
+            locToCell[d.x][d.y].status = cellStatus.BLOCKED
+        } else {
+            locToCell[d.x][d.y].status = cellStatus.EMPTY
+        }
+
+        if (isHelpMode) {
+            bulkChangeStatus(d.x, d.y, cellStatus.EMPTY)
+        }
+
+        updateBoard()
+    }
+
+    function chessboardClick(d) {
+        if (isGameOver || d.status !== cellStatus.QUEEN_HOVER)
+            return
+
+        if (d.disabled) {
+            isGameOver = true
+
+            locToCell[d.x][d.y].status = cellStatus.BLOCKED
+            updateBoard()
+
+            alert("You lost the game!")
+            return
+        }
+
+        locToCell[d.x][d.y].status = cellStatus.QUEEN
+
+        bulkChangeStatus(d.x, d.y, cellStatus.BLOCKED)
+
+        updateBoard()
+
+        steps.push({x: d.x, y: d.y, player: currentPlayer})
+        appendStep(`${playerNames[currentPlayer]}: place at ${numToLetter(d.x + 1)}${d.y + 1}`)
+
+        nextPlayer()
     }
 
     function bulkChangeStatus(x, y, status) {
@@ -455,16 +476,67 @@
             playerNames = []
 
             for (let i = 1; i <= numberOfPlayers; i ++) {
-                playerNames.push($(`#player-${i}-name`).val())
+                let name = $(`#player-${i}-name`).val()
+
+                if (name === "") {
+                    playerNames.push(`Player ${i}`)
+                } else {
+                    playerNames.push(`Player ${i} (${name})`)
+                }
             }
+
+            currentPlayer = undefined
 
             initBoard()
 
+            nextPlayer()
+
             $('#new-game-modal').modal('hide')
+
+            $("#game-steps-ul").html("")
+            steps = []
         }
     }
 
-    $('#new-game-modal').modal({backdrop: 'static'})
+    function appendStep(message) {
+        $("#game-steps-ul").append(`<li class="list-group-item">${message}</li>`)
+    }
+
+    $("#undo-btn").click(function () {
+        if (steps.length === 0) {
+            return
+        }
+
+        let step = steps.pop()
+
+        locToCell[step.x][step.y].status = cellStatus.EMPTY
+
+        appendStep(`${playerNames[step.player]}: undo at ${numToLetter(step.x + 1)}${step.y + 1}`)
+
+        updateBoard()
+
+        nextPlayer(true)
+    })
+
+    function nextPlayer(reverse = false) {
+        if (currentPlayer === undefined) {
+            currentPlayer = 0
+        } else {
+            if (!reverse) {
+                currentPlayer = (currentPlayer + 1) % numberOfPlayers
+            } else {
+                currentPlayer = (currentPlayer === 0) ? numberOfPlayers - 1 : currentPlayer - 1
+            }
+        }
+
+        $("#info").html(`${playerNames[currentPlayer]}'s Turn`)
+    }
+
+    // $('#new-game-modal').modal({backdrop: 'static'})
+    a = 20
+    b = 20
+    playerNames = ["Player 1 (Alan)"]
+    initBoard()
 </script>
 </body>
 </html>
