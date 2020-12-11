@@ -31,7 +31,7 @@
         }
 
         #player-3-score {
-            background-color: #343a40;
+            background-color: #f8d7da;
         }
 
         #player-4-score {
@@ -190,6 +190,8 @@
     }
 
     const chessBoardDiv = d3.select("#chess-board")
+
+    const teamColors = ["#17a2b8", "#ffc107", "#f8d7da", "#007bff"]
 
     let a
     let b
@@ -460,6 +462,18 @@
 
                         case cellStatus.BLOCKED_OTHER_TEAM:
                             return d.fill === "#F5F5DC" ? "#7A7A6D" : "#685945"
+
+                        case cellStatus.QUEEN:
+                            if (isTeamMode)
+                                return teamColors[d.player]
+                            else
+                                return d.fill
+
+                        case cellStatus.QUEEN_HOVER:
+                            if (isTeamMode)
+                                return teamColors[currentPlayer]
+                            else
+                                return d.fill
 
                         default:
                             return d.fill
