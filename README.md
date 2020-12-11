@@ -18,4 +18,4 @@ If the Team Mode is on, queens placed by the same player will be on the same tea
 
 ## Screenshot
 
-![](https://github.com/iLtc/NQueens/blob/main/image/screenshot.png)
+![](https://github.com/iLtc/NQueens/blob/main/image/screenshot.png?raw=true)
